@@ -33,6 +33,12 @@ missing_idx = np.isnan(data)
 obs_w_missing = np.sum(missing_idx, 1) > 0
 data_drop_missing_obs = data[np.logical_not(obs_w_missing), :]
 
+def is_orthonormal(a):
+    if not np.allclose(np.sum(a**2, axis=0), 1):  # Check if norms are 1
+        return False
+    if not np.allclose(a.T @ a, np.eye(a.shape[1])):  # Check if dot products are 0
+        return False
+    return True
 
 # Summary Statistics
 
@@ -129,6 +135,8 @@ def PCA(save_figs=False):
     # Standardising data
 
     X_s = (X - np.ones((N, 1))*X.mean(axis=0))/X.std(axis=0)
+    print("X_s:")
+    print(X_s)
 
     # Computing SVD
     
@@ -178,4 +186,32 @@ def PCA(save_figs=False):
     plt.show()
 
 
-# PCA()
+    print("Principal Components: ")
+    print(V.T)
+    print(np.linalg.norm(V.T, axis=1))
+    
+    print(is_orthonormal(V.T))
+    print(S)
+
+    ##################### Leonard below ##########################
+
+    pcs = [0, 1, 2, 3, 4]
+
+    legendStrs = ["PC" + str(e + 1) for e in pcs]
+    bw = 0.2
+    r = np.arange(1, M + 1)
+    for i in pcs:
+        plt.bar(r + i * bw, V.T[:, i], width=bw)
+    plt.xticks(r + bw, continuous_cols)
+    plt.xlabel("Attributes")
+    plt.ylabel("Component coefficients")
+    plt.legend(legendStrs)
+    plt.grid()
+    plt.title("Cleveland Heart Disease: PCA Component Coefficients")
+    plt.show()
+
+
+PCA()
+
+
+# 1.3818098   1.59762794  0.74246404 -1.81321544  0.38548012
