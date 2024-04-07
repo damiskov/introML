@@ -8,9 +8,9 @@ def load_regression_data():
     Loads data for project 2
 
     Output:
-    - X: data set
-    - continuous_idx: indices of columns in X containing continuous values
-    - cat_idx: indices of restecg and num (only two categorical attributes for model 2)
+    - X1, X2: 2 data sets (standardised + one-hot encoded)
+    - y: target
+    - final_columns: column names (for X2 - leave out last 4 if just working with X1)
     """
 
     filepath=r"/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/data/processed_cleveland.data"
@@ -49,32 +49,17 @@ def load_regression_data():
 
     X = data_remove_missing[:, cols_to_consider]
 
-    print("X before num converted to binary and restecg one-hot encoded:")
-    print(np.concatenate((continuous_cols, cat_cols)))
-    print(X[np.arange(10), :])
-    print()
 
-    # Converting num to binary
 
     X[:, -1] = (X[:, -1] > 0).astype(int)
 
-    # one-hot encoding restecg
+    # one-hot encoding ca
 
     N, _ = X.shape
 
     categories = np.unique(X[:, new_cat_idx])
     encoded_data = np.zeros((N, len(categories)), dtype=int)
 
-    
-
-
-    # # Fill the one-hot encoded array
-    # for i, category in enumerate(categories):
-    #     print(f"Rows where restecg = {category}")
-    #     indices = np.where(X[:,new_cat_idx] == category)
-    #     encoded_data[indices, i] = 1
-
-    # print(encoded_data[0, :])
 
     for i in range(N):
         for j, category in enumerate(categories):
@@ -82,43 +67,16 @@ def load_regression_data():
             if current_cat == category:
                 encoded_data[i,j] = 1
         
-
-    
-
-    # Removing original restecg column, and appending the new "encoded_data" columns to X
     
     X = np.delete(X, new_cat_idx, axis=1)
     X = np.concatenate((X, encoded_data), axis=1)
 
-
-    print("X after one-hot restecg and binarising num")
-
-    # final_columns = np.concatenate((continuous_cols, np.array(["num", "restecg=0", "restecg=1", "restecg=2"])))
     final_columns = np.concatenate((continuous_cols, np.array(["num", "ca=0", "ca=1", "ca=2", "ca=3"])))
-    print(final_columns)
-    print(X[np.arange(10), :])
-    # print(sum(X[:, -1]))
-
-    # Standardising continuous columns
-
-    print()
-
-    print("X after standardising continuous columns")
-
 
     N, _ = X.shape
     X[:, new_con_idx] = (X[:, new_con_idx] - np.ones((N, 1))*X[:, new_con_idx].mean(axis=0))/X[:, new_con_idx].std(axis=0)
-    
-    print(final_columns)
-    print(X[np.arange(1), :])
-
-    # Normalising target feature
-
-    # print("y before standardisation:")
-    # print(y[np.arange(5)])
     y  = (y - np.ones((N))*np.mean(y))/np.std(y)
-    # print("y after standardisation:")
-    # print(y[np.arange(5)])
+
     
     return X[:, new_con_idx], X,  y, final_columns
 
@@ -133,7 +91,8 @@ def partA(X, y):
     - X_m1, X_m2: data for two models
 
     """
-    lambdas = np.power(10.0, np.arange(-8, 8))
+    lambdas = np.concatenate((np.power(10.0, range(-5,0), np.arange(2, 100), np.power(10.0, range(1,3)))))
+
     training_err, validation_err, weights = ridge_linear_regression(X, y, lambdas)
     
     # Plotting error rates
@@ -152,7 +111,19 @@ def partA(X, y):
     plt.ylabel("Average Coefficient Value")
     plt.show()
 
+def partA_v2(X, y, attributeNames, fname=""):
+    """
+    Performs part (a) of project 2
+    - Performs ridge linear regression on two models, finding optimal lambda.
+    - Using 10-fold cross validation, estimates generalisation error for each function according to its lambda.
+    - Plots generalisation error vs lambda.
+    Inputs:
+    - X: data 
+    - y: targets
+    """
 
+    lambdas = np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4))))
+    ridge_linear_regression_v2(X, y, lambdas, attributeNames, fname=fname)
 
 
 
@@ -168,15 +139,37 @@ if __name__=="__main__":
 
     # partA(X1,y)
     # partA(X2, y)
-    h = np.arange(1, 6)
-    training_errNN, validation_errNN = regression_NN(X2, y, np.arange(1, 6))
-    plt.plot(h, training_errNN, ".-", c='b', label=r'$E_{train}$')
-    plt.plot(h, validation_errNN, ".-", c='r', label=r'$E_{validation}$')
-    plt.xlabel("Hidden Units")
-    plt.ylabel("Mean Squared Error")
-    plt.grid()
-    plt.legend()
-    plt.show()
+    # h = np.arange(1, 6)
+    # training_errNN, validation_errNN = regression_NN(X2, y, np.arange(1, 6))
+    # plt.plot(h, training_errNN, ".-", c='b', label=r'$E_{train}$')
+    # plt.plot(h, validation_errNN, ".-", c='r', label=r'$E_{validation}$')
+    # plt.xlabel("Hidden Units")
+    # plt.ylabel("Mean Squared Error")
+    # plt.grid()
+    # plt.legend()
+    # plt.show()
+
+    print("------- Regression ---------")
+    print("Part a)")
+    print("Ridge regression ")
+
+    partA_v2(X1, y, column_names[np.arange(X1.shape[1])], fname="rrX1")
+    partA_v2(X2, y, column_names, fname="rrX2")
+
+    print("Part b)")
+    print("Comparison of models based on hyperparameter selection")
+
+
+    rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = part_b(X1, y, np.arange(1, 10), np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4)))))
+    print(f"""
+    rlr_errors: {rlr_errors}\n
+    ANN_errors: {ANN_errors}\n
+    baseline_errors: {baseline_errors}\n
+    optimal_lambdas: {optimal_lambdas}\n
+    optimal_h: {optimal_h}\n
+""")
+
+
 
 
 
