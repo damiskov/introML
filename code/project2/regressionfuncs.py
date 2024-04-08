@@ -7,6 +7,7 @@ from dtuimldmtools import train_neural_net, rlr_validate
 import pandas as pd
 import numpy as np
 import sklearn.linear_model as lm
+import scipy.stats as st
 from matplotlib.pylab import (
     figure,
     grid,
@@ -95,7 +96,7 @@ def ridge_linear_regression(X, y, lambdas, K=10):
 
 def RLR_single_fold(X_train, y_train, X_test, y_test, opt_lambda):  
     """
-    Returns test error after training on single fold
+    Returns predicted values and  test error after training on single fold
     """  
     
     M = X_train.shape[1]
@@ -116,8 +117,8 @@ def RLR_single_fold(X_train, y_train, X_test, y_test, opt_lambda):
     w = np.linalg.solve(XtX + lambdaI, Xty).squeeze()
 
     # Evaluate test performance
-    
-    test_error = np.power(y_test - X_test @ w.T, 2).mean(axis=0)
+    predicted = X_test @ w.T
+    test_error = np.power(y_test - predicted, 2).mean(axis=0)
 
     return test_error
 
@@ -439,8 +440,34 @@ def baseline(X, y, K=10):
     return np.mean(errors)
 
 
+def ttest_twomodels(mseA, mseB, alpha=0.05):
+    """
+    Perform a two-sample t-test on the predicted values of two models.
 
-def part_b(X, y, h, lambdas, K=10):
+    Parameters:
+    - y_true: array-like, true values
+    - yhatA: array-like, predicted values of model A
+    - yhatB: array-like, predicted values of model B
+    - alpha: float, significance level (default=0.05)
+    - loss_norm_p: int, norm order for loss calculation (default=1)
+
+    Returns:
+    - mean_diff: float, mean difference between the predicted values of model A and model B
+    - confidence_interval: tuple, confidence interval of the mean difference
+    - p_value: float, p-value of the null hypothesis that the mean difference is zero
+    """
+    # zA = np.abs(y_true - yhatA) ** loss_norm_p
+    # zB = np.abs(y_true - yhatB) ** loss_norm_p
+    z = mseA - mseB
+    CI = st.t.interval(1 - alpha, len(z) - 1, loc=np.mean(z), scale=st.sem(z))
+    p = 2 * st.t.cdf(-np.abs(np.mean(z)) / st.sem(z), df=len(z) - 1)
+    return np.mean(z), CI, p
+
+
+    
+
+
+def get_hyperparam_generror(X, y, h, lambdas, K=10):
     """
     Performs part b of regression for project 2 - Will return all data for one outer fold 
 
@@ -455,6 +482,8 @@ def part_b(X, y, h, lambdas, K=10):
     - E_rr, E_nn, E_baseline: Lowest test error rates for linear ridge regression, ANN and baseline models.
     - h_opt: Optimal number of hidden units in NN
     - lambda_opt: optimal regularisation parameter.
+    - p_vals: p-values from ttest
+    - CIs: confidence intervals from ttest
     """
 
     rlr_errors = np.zeros(K)
@@ -470,6 +499,7 @@ def part_b(X, y, h, lambdas, K=10):
     CV = model_selection.KFold(K, shuffle=True)
 
     for k, (train_idx, test_idx) in enumerate(CV.split(X, y)):
+        print(f"Fold {k}/{K}")
 
         X_train, y_train = X[train_idx, :], y[train_idx]
         X_test, y_test = X[test_idx, :], y[test_idx]
@@ -507,9 +537,10 @@ def part_b(X, y, h, lambdas, K=10):
         ANN_errors[k] = ANN_single_fold(X_train, y_train, X_test, y_test, h_opt)
         baseline_errors[k] = np.mean([x**2 for x in (np.mean(y_train))*np.ones(len(y_test))-y_test])
 
-    return rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h
-        
+    
 
+    return np.round(rlr_errors, 4), np.round(ANN_errors, 4), np.round(baseline_errors, 4), optimal_lambdas, optimal_h
+        
 
 
 

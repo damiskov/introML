@@ -128,26 +128,13 @@ def partA_v2(X, y, attributeNames, fname=""):
 
 
 
-
 if __name__=="__main__":
 
-    # Set up
+    #  Load data
     
     X1, X2, y, column_names = load_regression_data()
 
     # Part a)
-
-    # partA(X1,y)
-    # partA(X2, y)
-    # h = np.arange(1, 6)
-    # training_errNN, validation_errNN = regression_NN(X2, y, np.arange(1, 6))
-    # plt.plot(h, training_errNN, ".-", c='b', label=r'$E_{train}$')
-    # plt.plot(h, validation_errNN, ".-", c='r', label=r'$E_{validation}$')
-    # plt.xlabel("Hidden Units")
-    # plt.ylabel("Mean Squared Error")
-    # plt.grid()
-    # plt.legend()
-    # plt.show()
 
     print("------- Regression ---------")
     print("Part a)")
@@ -159,15 +146,43 @@ if __name__=="__main__":
     print("Part b)")
     print("Comparison of models based on hyperparameter selection")
 
+    h = np.arange(1, 10)
+    lambdas = np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4))))
 
-    rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = part_b(X1, y, np.arange(1, 10), np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4)))))
-    print(f"""
+
+    rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = get_hyperparam_generror(X1, y, h, lambdas)
+    print(
+    f"""
     rlr_errors: {rlr_errors}\n
     ANN_errors: {ANN_errors}\n
     baseline_errors: {baseline_errors}\n
     optimal_lambdas: {optimal_lambdas}\n
     optimal_h: {optimal_h}\n
-""")
+    """)
+
+    print("----- Statistical Performance Comparison -------")
+    
+    p_vals = np.zeros((3,3)) # P values
+    confidence_intervals = np.empty((3,3), dtype=tuple) # 95% Confidence intervals
+    thetas = np.zeros((3,3))
+
+    for i, eA in enumerate([rlr_errors, ANN_errors, baseline_errors]):
+        for j, eB in enumerate([rlr_errors, ANN_errors, baseline_errors]):
+            if i!=j:
+                theta_hat, CI, p = ttest_twomodels(eA, eB)
+                p_vals[i,j] = p
+                confidence_intervals[i, j] = (np.round(CI[0], 3), np.round(CI[1], 3))
+                thetas[i,j] = theta_hat
+
+    print(f"""
+    p_vals:\n{p_vals}
+
+    confidence_intervals:\n{confidence_intervals}
+
+    theta_hat:\n{thetas}
+    """)
+
+
 
 
 
