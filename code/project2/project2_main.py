@@ -49,7 +49,7 @@ def load_regression_data():
 
     X = data_remove_missing[:, cols_to_consider]
 
-
+    # Binarising num 
 
     X[:, -1] = (X[:, -1] > 0).astype(int)
 
@@ -133,6 +133,14 @@ if __name__=="__main__":
     #  Load data
     
     X1, X2, y, column_names = load_regression_data()
+
+    print("---- Loaded data for Regression ------")
+    
+    print(f"X1:\n{X1[np.arange(4), :]}")
+    print(f"X2:\n{X2[np.arange(4),:]}")
+    print(f"y:\n{y[np.arange(4)]}")
+
+    
 
     # Part a)
 

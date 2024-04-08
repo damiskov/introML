@@ -156,8 +156,6 @@ def ANN_single_fold(X_train, y_train, X_test, y_test,opt_h):
     mse = torch.mean((predicted - y_test)**2).item()
     return mse
     
-
-
 def ridge_linear_regression_v2(X, y, lambdas, attributeNames, K=10, fname = ""):
 
     """
@@ -463,8 +461,6 @@ def ttest_twomodels(mseA, mseB, alpha=0.05):
     p = 2 * st.t.cdf(-np.abs(np.mean(z)) / st.sem(z), df=len(z) - 1)
     return np.mean(z), CI, p
 
-
-    
 
 
 def get_hyperparam_generror(X, y, h, lambdas, K=10):
