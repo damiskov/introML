@@ -7,6 +7,17 @@ Only stored in case they are useful in the future.
 
 """
 
+def nn_error(predicted, actual):
+    """
+    Calculate mean squared error (MSE) between predicted and actual values.
+    """
+    # Calculate squared error
+    se = (predicted.float() - actual.float()) ** 2
+
+    # Calculate mean squared error (MSE)
+    mse = torch.mean(se).item()  # Convert to Python float
+
+    return mse
 
 
 

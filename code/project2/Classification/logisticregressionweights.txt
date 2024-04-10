@@ -1,0 +1,7 @@
+['age' 'trestbps' 'chol' 'thalach' 'oldpeak']
+
+            Weights of Logistic Regression model:
+                  
+                  [[ 0.00724065  0.19616371  0.12413937 -0.84617313  0.74210976]]
+
+            

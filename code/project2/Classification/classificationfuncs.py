@@ -3,7 +3,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn import model_selection
 import numpy as np
 import torch
-from dtuimldmtools import train_neural_net, rlr_validate
+from dtuimldmtools import train_neural_net, mcnemar
 import pandas as pd
 import numpy as np
 from statistics import mode
@@ -34,7 +34,7 @@ def part_b(X, y, h, lambdas, K=10):
     optimal_lambdas = np.zeros(K)
     optimal_h = np.zeros(K)
     
-    # Add offset attribute for linear regression model
+    # Add offset attribute for logistic regression model
     X_rr = np.concatenate((np.ones((X.shape[0], 1)), X), 1) 
 
 
@@ -55,7 +55,7 @@ def part_b(X, y, h, lambdas, K=10):
        
         for i, hidden_units in enumerate(h):
             print(f"Retrieving error for h = {hidden_units}")
-            errors_ANN[i] = ANN_opt_h(X_train, y_train, hidden_units)
+            errors_ANN[i] = ANN_class_opt_h(X_train, y_train, hidden_units)
         
         E_nn = np.min(errors_ANN)
         h_opt = h[np.argmin(errors_ANN)]
@@ -67,9 +67,54 @@ def part_b(X, y, h, lambdas, K=10):
 
         # We now have optimal hyperparameters, training and testing on outer fold for generalisation errors
 
-        RLogR_errors[k] = RLogR_single_fold(X_train, y_train, X_test, y_test, opt_lambda)
-        ANN_errors[k] = ANN_single_fold(X_train, y_train, X_test, y_test, h_opt)
-        baseline_errors[k] = baseline(X_train, y_train, X_test, y_test)
+        RLogR_errors[k], RlogR_predicted, RLogR_weights = RLogR_single_fold(X_train, y_train, X_test, y_test, opt_lambda)
+        ANN_errors[k], ANN_predicted = ANN_single_fold(X_train, y_train, X_test, y_test, h_opt)
+        baseline_errors[k], baseline_predicted = baseline(X_train, y_train, X_test, y_test)
+
+        print(f"type(ANN_predicted) = {type(ANN_predicted)}")
+
+        if k == K-1: # On the last fold, compare performance of different models
+
+            p_vals = np.zeros((3,3)) # P values
+            confidence_intervals = np.empty((3,3), dtype=tuple) # 95% Confidence intervals
+            thetas = np.zeros((3,3))
+
+
+            print("----- Statistical Performance Comparison on last fold -------")
+            for i, yhatA in enumerate([RlogR_predicted, ANN_predicted, baseline_predicted]):
+                for j, yhatB in enumerate([RlogR_predicted, ANN_predicted, baseline_predicted]):
+                    if i!=j:
+
+                        theta_hat, CI, p = mcnemar(y_test, yhatA, yhatB)
+                        p_vals[i,j] = p
+                        confidence_intervals[i, j] = (np.round(CI[0], 3), np.round(CI[1], 3))
+                        thetas[i,j] = theta_hat
+            str_stats = f"""
+            p_vals:\n{p_vals}
+
+                    confidence_intervals:\n{confidence_intervals}
+
+                    theta_hat:\n{thetas}
+            """
+            print(str_stats)
+
+            # Writing stats
+            with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/classification/statisticalcomparisonlastfoldclassification.txt", "w") as f:
+                f.write(str_stats)
+
+            str_weights = f"""
+
+            Weights of Logistic Regression model:
+                  
+                  {RLogR_weights}
+
+            """
+            print(str_weights)
+
+            # Writing weights to file
+            with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/classification/logisticregressionweights.txt", "a") as f:
+                f.write(str_weights)
+            
 
     return RLogR_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h
         
@@ -131,7 +176,7 @@ def RLogR_opt_lambda(X, y, lambdas, K=10):
     return opt_lambda
 
 
-def ANN_opt_h(X, y, h, K=10):
+def ANN_class_opt_h(X, y, h, K=10):
 
     """
     Performs classification using ANN for a given number of hidden units
@@ -150,7 +195,7 @@ def ANN_opt_h(X, y, h, K=10):
     # Parameters for neural network classifier
     n_hidden_units = h  # number of hidden units
     n_replicates = 1  # number of networks trained in each k-fold
-    max_iter = 10000
+    max_iter = 1000
 
 
     CV = model_selection.KFold(K, shuffle=True)
@@ -173,7 +218,6 @@ def ANN_opt_h(X, y, h, K=10):
 
     for k, (train_index, test_index) in enumerate(CV.split(X, y)):
 
-        print("\nANN inner Crossvalidation fold: {0}/{1}".format(k + 1, K))
         # Extract training and test set for current CV fold, convert to tensors
         # Converting to torch tensors:
 
@@ -190,24 +234,25 @@ def ANN_opt_h(X, y, h, K=10):
             max_iter=max_iter,
         )
 
-        print("\n\tBest loss: {}\n".format(final_loss))
 
         # Determine estimated class labels for test set
 
         y_sigmoid = net(X_test) 
+        
         predicted = (y_sigmoid > 0.5).type(
         dtype=torch.uint8
         ).squeeze()
         actual = y_test.type(dtype=torch.uint8)
-        print(f"""
-        Shape of predicted values: {predicted.shape}
-        Shape of actual values: {actual.shape}
+        
+        # print(f"""
+        # Shape of predicted values: {predicted.shape}
+        # Shape of actual values: {actual.shape}
+        # """)
 
-""")
         e = predicted != actual
         error_rate = (sum(e).type(torch.float) / len(y_test)).data.numpy()
 
-        print(f"Error rate: {error_rate}")
+
 
         errors[k] = error_rate
 
@@ -233,7 +278,7 @@ def ANN_single_fold(X_train, y_train, X_test, y_test,opt_h):
     # Parameters for neural network classifier
     n_hidden_units = opt_h  # number of hidden units
     n_replicates = 1  # number of networks trained in each k-fold
-    max_iter = 10000
+    max_iter = 1000
 
     # Define the model
     model = lambda: torch.nn.Sequential(
@@ -269,7 +314,7 @@ def ANN_single_fold(X_train, y_train, X_test, y_test,opt_h):
     e = predicted != actual
     error_rate = (sum(e).type(torch.float) / len(y_test)).data.numpy()
 
-    return error_rate
+    return error_rate, predicted.numpy()
 
 def RLogR_single_fold(X_train, y_train, X_test, y_test, l):
     """
@@ -287,11 +332,14 @@ def RLogR_single_fold(X_train, y_train, X_test, y_test, l):
 
     mdl.fit(X_train, y_train)
 
-    y_test_est = mdl.predict(X_test).T
+    wts = mdl.coef_
 
-    err = np.sum(y_test_est != y_test) / len(y_test)
+    predicted = mdl.predict(X_test).T
+    predicted = predicted.squeeze()
 
-    return err
+    err = np.sum(predicted != y_test) / len(y_test)
+
+    return err, predicted, wts
 
 def baseline(X_train, y_train, X_test, y_test):
     """
@@ -306,35 +354,10 @@ def baseline(X_train, y_train, X_test, y_test):
     
     err = np.sum(predicted != y_test) / len(y_test)
 
-    return err
+
+    return err, predicted
 
 
-"""
-Ttest
-"""
-
-def ttest_twomodels(mseA, mseB, alpha=0.05):
-    """
-    Perform a two-sample t-test on the predicted values of two models.
-
-    Parameters:
-    - y_true: array-like, true values
-    - yhatA: array-like, predicted values of model A
-    - yhatB: array-like, predicted values of model B
-    - alpha: float, significance level (default=0.05)
-    - loss_norm_p: int, norm order for loss calculation (default=1)
-
-    Returns:
-    - mean_diff: float, mean difference between the predicted values of model A and model B
-    - confidence_interval: tuple, confidence interval of the mean difference
-    - p_value: float, p-value of the null hypothesis that the mean difference is zero
-    """
-    # zA = np.abs(y_true - yhatA) ** loss_norm_p
-    # zB = np.abs(y_true - yhatB) ** loss_norm_p
-    z = mseA - mseB
-    CI = st.t.interval(1 - alpha, len(z) - 1, loc=np.mean(z), scale=st.sem(z))
-    p = 2 * st.t.cdf(-np.abs(np.mean(z)) / st.sem(z), df=len(z) - 1)
-    return np.mean(z), CI, p
 
 
 

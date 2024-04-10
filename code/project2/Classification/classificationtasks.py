@@ -49,7 +49,7 @@ def load_classfication_data():
 
   y=y.squeeze()
 
-  return X, y
+  return X, y, attributeNames
 
 
 def classifcation_tasks(X, y, lambdas, h, K=10):
@@ -84,7 +84,7 @@ def classifcation_tasks(X, y, lambdas, h, K=10):
     errors_ANN = np.zeros(len(h))
           
     for i, hidden_units in enumerate(h):
-        errors_ANN[i] = ANN_opt_h(X_train, y_train, hidden_units)
+        errors_ANN[i] = ANN_class_opt_h(X_train, y_train, hidden_units)
     
     E_nn = np.min(errors_ANN)
     h_opt = h[np.argmin(errors_ANN)]
@@ -107,12 +107,13 @@ def classifcation_tasks(X, y, lambdas, h, K=10):
 
 
 
-
-
-
 if __name__ == "__main__":
 
-  X, y = load_classfication_data()
+  X, y, attributeNames = load_classfication_data()
+
+  with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/classification/logisticregressionweights.txt", "w") as f:
+    f.write(str(attributeNames))
+
 
   print("---- Loaded data for classification ------")
   
@@ -122,41 +123,29 @@ if __name__ == "__main__":
 
   print("------ Tasks -----")
 
-  print("Comparison of models based on hyperparameter selection")
+  print("Comparison of model generalisation errors based on hyperparameter selection")
 
   h = np.arange(1, 10)
-  lambdas = np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4))))
-
+  lambdas = np.power(10.0, range(-5,5))
 
   RLogR_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = part_b(X, y, h, lambdas)
-  print(
-  f"""
-  RLogR_errors: {RLogR_errors}\n
-  ANN_errors: {ANN_errors}\n
-  baseline_errors: {baseline_errors}\n
-  optimal_lambdas: {optimal_lambdas}\n
-  optimal_h: {optimal_h}\n
-  """)
+  
+  str_errors = f"""
+RLogR_errors: {RLogR_errors}\n
+ANN_errors: {ANN_errors}\n
+baseline_errors: {baseline_errors}\n"""
 
-  print("----- Statistical Performance Comparison -------")
-    
-  p_vals = np.zeros((3,3)) # P values
-  confidence_intervals = np.empty((3,3), dtype=tuple) # 95% Confidence intervals
-  thetas = np.zeros((3,3))
-
-  for i, eA in enumerate([RLogR_errors, ANN_errors, baseline_errors]):
-      for j, eB in enumerate([RLogR_errors, ANN_errors, baseline_errors]):
-          if i!=j:
-              theta_hat, CI, p = ttest_twomodels(eA, eB)
-              p_vals[i,j] = p
-              confidence_intervals[i, j] = (np.round(CI[0], 3), np.round(CI[1], 3))
-              thetas[i,j] = theta_hat
-
-  print(f"""
-  p_vals:\n{p_vals}
-
-  confidence_intervals:\n{confidence_intervals}
-
-  theta_hat:\n{thetas}
-  """)
+  str_optimal_hyperparams = f"""   
+optimal_lambdas: {optimal_lambdas}\n
+optimal_h: {optimal_h}\n
+"""
+  
+  # Writing to files
+  with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/classification/errorrates.txt", "w") as f:
+    f.write(str_errors)
+  
+  with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/classification/optimalhyperparametersclassification.txt", "w") as f:
+    f.write(str_optimal_hyperparams)
+  
+  
 

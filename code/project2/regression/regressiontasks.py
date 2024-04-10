@@ -81,35 +81,6 @@ def load_regression_data():
     return X[:, new_con_idx], X,  y, final_columns
 
 
-def partA(X, y):
-    """
-    Performs part (a) of project 2
-    - Performs ridge linear regression on two models, finding optimal lambda.
-    - Using 10-fold cross validation, estimates generalisation error for each function according to its lambda.
-    - Plots generalisation error vs lambda.
-    Inputs:
-    - X_m1, X_m2: data for two models
-
-    """
-    lambdas = np.concatenate((np.power(10.0, range(-5,0), np.arange(2, 100), np.power(10.0, range(1,3)))))
-
-    training_err, validation_err, weights = ridge_linear_regression(X, y, lambdas)
-    
-    # Plotting error rates
-
-    plt.semilogx(lambdas, training_err, ".-", c='b', label=r'$E_{train}$')
-    plt.semilogx(lambdas, validation_err, ".-", c='r', label=r'$E_{validation}$')
-    plt.xlabel(r"$\lambda$")
-    plt.ylabel("Mean Squared Error")
-    plt.grid()
-    plt.legend()
-    plt.show()
-
-    # Plotting average weights
-    plt.semilogx(lambdas, weights.T, ".-")
-    plt.xlabel(r"$\lambda$")
-    plt.ylabel("Average Coefficient Value")
-    plt.show()
 
 def partA_v2(X, y, attributeNames, fname=""):
     """
@@ -134,12 +105,16 @@ if __name__=="__main__":
     
     X1, X2, y, column_names = load_regression_data()
 
+
+
     print("---- Loaded data for Regression ------")
     
     print(f"X1:\n{X1[np.arange(4), :]}")
     print(f"X2:\n{X2[np.arange(4),:]}")
     print(f"y:\n{y[np.arange(4)]}")
 
+    h = np.arange(1, 10)
+    lambdas = np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4))))
     
 
     # Part a)
@@ -148,47 +123,67 @@ if __name__=="__main__":
     print("Part a)")
     print("Ridge regression ")
 
-    partA_v2(X1, y, column_names[np.arange(X1.shape[1])], fname="rrX1")
-    partA_v2(X2, y, column_names, fname="rrX2")
 
-    print("Part b)")
-    print("Comparison of models based on hyperparameter selection")
+    # partA(X1, y,lambdas, column_names[np.arange(X1.shape[1])], fname="rrX1")
+    # partA(X2, y,lambdas, column_names, fname="rrX2")
 
-    h = np.arange(1, 10)
+    print("part b)")
+
+    with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/regression/linearregressionweightsX1.txt", "w") as f:
+        f.write(str(column_names[np.array([i for i in range(X1.shape[1])])]))
+
+    print("------------------- X1 (only continuous attributes) -------------------")
+
+
+    h = np.arange(1, 10) 
     lambdas = np.concatenate((np.power(10.0, range(-5,0)), np.arange(2, 100), np.power(10.0, range(2, 4))))
 
 
-    rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = get_hyperparam_generror(X1, y, h, lambdas)
-    print(
-    f"""
-    rlr_errors: {rlr_errors}\n
-    ANN_errors: {ANN_errors}\n
-    baseline_errors: {baseline_errors}\n
-    optimal_lambdas: {optimal_lambdas}\n
-    optimal_h: {optimal_h}\n
-    """)
-
-    print("----- Statistical Performance Comparison -------")
+    rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = get_hyperparameters_and_generror(X1, y, h, lambdas)
     
-    p_vals = np.zeros((3,3)) # P values
-    confidence_intervals = np.empty((3,3), dtype=tuple) # 95% Confidence intervals
-    thetas = np.zeros((3,3))
+    
+    str_errors = f"""
+rlr_errors: {rlr_errors}\n
+ANN_errors: {ANN_errors}\n
+baseline_errors: {baseline_errors}\n"""
+    
+    str_optimal_hyperparams = f"""   
+optimal_lambdas: {optimal_lambdas}\n
+optimal_h: {optimal_h}\n
+"""
+  
+  # Writing to files
+    with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/regression/errorsX1.txt", "w") as f:
+        f.write(str_errors)
+  
+    with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/regression/optimalhyperparametersregressionX1.txt", "w") as f:
+        f.write(str_optimal_hyperparams)
+  
 
-    for i, eA in enumerate([rlr_errors, ANN_errors, baseline_errors]):
-        for j, eB in enumerate([rlr_errors, ANN_errors, baseline_errors]):
-            if i!=j:
-                theta_hat, CI, p = ttest_twomodels(eA, eB)
-                p_vals[i,j] = p
-                confidence_intervals[i, j] = (np.round(CI[0], 3), np.round(CI[1], 3))
-                thetas[i,j] = theta_hat
+    print("------------------- X2  -------------------")
 
-    print(f"""
-    p_vals:\n{p_vals}
+    with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/regression/linearregressionweightsX2.txt", "w") as f:
+        f.write(str(column_names[np.array([i for i in range(X1.shape[1])])]))
 
-    confidence_intervals:\n{confidence_intervals}
 
-    theta_hat:\n{thetas}
-    """)
+    rlr_errors, ANN_errors, baseline_errors, optimal_lambdas, optimal_h = get_hyperparameters_and_generror(X1, y, h, lambdas, dataset="X2")
+
+    str_errors = f"""
+rlr_errors: {rlr_errors}\n
+ANN_errors: {ANN_errors}\n
+baseline_errors: {baseline_errors}\n"""
+    
+    str_optimal_hyperparams = f"""   
+optimal_lambdas: {optimal_lambdas}\n
+optimal_h: {optimal_h}\n
+"""
+  
+  # Writing to files
+    with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/regression/errorsX2.txt", "w") as f:
+        f.write(str_errors)
+  
+    with open("/Users/davidmiles-skov/Desktop/Academics/Machine Learning/02450 - Introduction to Machine Learning and Data Mining/Project Work/introML/code/project2/regression/optimalhyperparametersregressionX2.txt", "w") as f:
+        f.write(str_optimal_hyperparams)
 
 
 
