@@ -1,6 +1,10 @@
 import numpy as np
 
 class NeuralNetwork:
+
+    """
+    Very simple Neural network with 1 hidden layer.
+    """
     def __init__(self, input_size, hidden_size, output_size):
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -10,12 +14,12 @@ class NeuralNetwork:
     
     def addWeights(self, weights):
         if len(weights) != 2:
-            raise ValueError("The number of weights must be 2.")
+            raise ValueError("Must have 2 sets arrays of weights.")
         self.weights = weights
 
     def addBiases(self, biases):
         if len(biases) != 2:
-            raise ValueError("The number of biases must be 2.")
+            raise ValueError("Must have 2 arrays of biases.")
         self.biases = biases
 
     def addActivationFunction(self, activation_function):
