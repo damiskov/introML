@@ -27,10 +27,15 @@ def knn_CV(table,labels, K):
         indices = indices[1:K+1]
         votes = labels[indices]
         counts = np.bincount(votes)
-        prediction = np.argmax(counts)
+        # Check if there is a tie
+        if len(np.where(counts == np.max(counts))[0]) > 1:
+            # If there is a tie, choose closest neighbor
+            prediction = labels[indices[0]]
+        else:
+            prediction = np.argmax(counts)
+        print(f"Prediction: {prediction}, Actual: {labels[obs]}")
         error += prediction != labels[obs]
     return error/n
-
 
 if __name__=="__main__":
     table = """
